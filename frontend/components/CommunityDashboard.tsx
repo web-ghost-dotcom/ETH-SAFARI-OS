@@ -317,7 +317,7 @@ export default function CommunityDashboard() {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="max-w-2xl w-full bg-black border border-white/20 rounded-2xl p-8"
+                            className="max-w-2xl w-full mx-4 bg-black border border-white/20 rounded-2xl p-6 md:p-8"
                         >
                             <div className="flex items-start justify-between mb-6">
                                 <div>

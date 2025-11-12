@@ -1,8 +1,11 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, UserPlus, MessageCircle, X } from 'lucide-react';
+import { Search, Filter, UserPlus, MessageCircle, X, Award, Shield } from 'lucide-react';
 import { useState } from 'react';
+import { useAquafier } from '@/lib/aquafier';
+import { VerificationIcon } from './VerificationBadge';
+import { useToast } from '@/hooks/useToast';
 
 const builders = [
     {
@@ -13,7 +16,9 @@ const builders = [
         projects: 8,
         reputation: 950,
         available: true,
-        avatar: 'AO'
+        avatar: 'AO',
+        walletAddress: '0x1234...5678',
+        credentials: [] as Array<{ type: string; title: string; aquaTreeId?: string; isSigned: boolean }>
     },
     {
         name: 'Kwame Mensah',
@@ -23,7 +28,9 @@ const builders = [
         projects: 12,
         reputation: 1240,
         available: false,
-        avatar: 'KM'
+        avatar: 'KM',
+        walletAddress: '0x2345...6789',
+        credentials: [] as Array<{ type: string; title: string; aquaTreeId?: string; isSigned: boolean }>
     },
     {
         name: 'Zara Ibrahim',
@@ -33,7 +40,9 @@ const builders = [
         projects: 15,
         reputation: 1100,
         available: true,
-        avatar: 'ZI'
+        avatar: 'ZI',
+        walletAddress: '0x3456...7890',
+        credentials: [] as Array<{ type: string; title: string; aquaTreeId?: string; isSigned: boolean }>
     },
     {
         name: 'Thierry Dubois',
@@ -43,7 +52,9 @@ const builders = [
         projects: 6,
         reputation: 780,
         available: true,
-        avatar: 'TD'
+        avatar: 'TD',
+        walletAddress: '0x4567...8901',
+        credentials: [] as Array<{ type: string; title: string; aquaTreeId?: string; isSigned: boolean }>
     },
     {
         name: 'Nia Kamau',
@@ -53,7 +64,9 @@ const builders = [
         projects: 10,
         reputation: 890,
         available: false,
-        avatar: 'NK'
+        avatar: 'NK',
+        walletAddress: '0x5678...9012',
+        credentials: [] as Array<{ type: string; title: string; aquaTreeId?: string; isSigned: boolean }>
     },
     {
         name: 'Ibrahim Diallo',
@@ -63,7 +76,9 @@ const builders = [
         projects: 20,
         reputation: 1560,
         available: true,
-        avatar: 'ID'
+        avatar: 'ID',
+        walletAddress: '0x6789...0123',
+        credentials: [] as Array<{ type: string; title: string; aquaTreeId?: string; isSigned: boolean }>
     }
 ];
 
@@ -106,6 +121,12 @@ export default function BuilderNetwork() {
     const [connections, setConnections] = useState<string[]>([]);
     const [showMessageModal, setShowMessageModal] = useState(false);
     const [messageRecipient, setMessageRecipient] = useState('');
+    const [showCredentialModal, setShowCredentialModal] = useState(false);
+    const [signingCredential, setSigningCredential] = useState(false);
+    const [buildersData, setBuildersData] = useState(builders);
+
+    const { signCredential, isAvailable } = useAquafier();
+    const { addToast } = useToast();
 
     const handleConnect = (name: string) => {
         setConnections(prev => [...prev, name]);
@@ -118,6 +139,61 @@ export default function BuilderNetwork() {
         setShowMessageModal(true);
         setSelectedBuilder(null);
         setSelectedMentor(null);
+    };
+
+    const handleSignCredential = async (credentialType: 'project_completion' | 'mentorship' | 'skill_verification', title: string, description: string) => {
+        if (!selectedBuilder) return;
+
+        setSigningCredential(true);
+        try {
+            // Mock mentor wallet address - in production, get from wallet connection
+            const mentorAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+
+            const result = await signCredential(
+                selectedBuilder.walletAddress,
+                {
+                    type: credentialType,
+                    title,
+                    description,
+                    metadata: {
+                        builderName: selectedBuilder.name,
+                        builderRole: selectedBuilder.role,
+                        issuedAt: new Date().toISOString()
+                    }
+                },
+                mentorAddress
+            );
+
+            if (result.success) {
+                // Update builder credentials
+                setBuildersData(prev => prev.map(b =>
+                    b.name === selectedBuilder.name
+                        ? {
+                            ...b,
+                            credentials: [
+                                ...b.credentials,
+                                {
+                                    type: credentialType,
+                                    title,
+                                    aquaTreeId: result.aquaTreeId,
+                                    isSigned: true
+                                }
+                            ]
+                        }
+                        : b
+                ));
+
+                addToast('Credential cryptographically signed!', 'success');
+                setShowCredentialModal(false);
+                setSelectedBuilder(null);
+            } else {
+                addToast(result.error || 'Failed to sign credential', 'error');
+            }
+        } catch {
+            addToast('An error occurred while signing credential', 'error');
+        } finally {
+            setSigningCredential(false);
+        }
     };
     return (
         <section className="relative py-12 px-6 sm:px-12 lg:px-16 bg-gradient-to-b from-black via-[#0a0a0a] to-black">
@@ -168,7 +244,7 @@ export default function BuilderNetwork() {
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {builders.map((builder, index) => (
+                        {buildersData.map((builder, index) => (
                             <motion.div
                                 key={builder.name}
                                 initial={{ opacity: 0, y: 20 }}
@@ -199,9 +275,14 @@ export default function BuilderNetwork() {
                                     </div>
 
                                     {/* Info */}
-                                    <h4 className="text-lg font-bold text-white mb-1">
-                                        {builder.name}
-                                    </h4>
+                                    <div className="flex items-start justify-between mb-1">
+                                        <h4 className="text-lg font-bold text-white">
+                                            {builder.name}
+                                        </h4>
+                                        {builder.credentials.length > 0 && (
+                                            <VerificationIcon isVerified={true} />
+                                        )}
+                                    </div>
                                     <p className="text-sm text-white/60 mb-1">
                                         {builder.role}
                                     </p>
@@ -348,7 +429,7 @@ export default function BuilderNetwork() {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="max-w-2xl w-full bg-black border border-white/20 rounded-2xl p-8 max-h-[90vh] overflow-y-auto"
+                            className="max-w-2xl w-full mx-4 bg-black border border-white/20 rounded-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto"
                         >
                             {selectedBuilder && (
                                 <>
@@ -408,24 +489,50 @@ export default function BuilderNetwork() {
 
                                         <div>
                                             <h4 className="text-sm font-semibold text-white/80 mb-3">About</h4>
-                                            <p className="text-white/60 leading-relaxed">
+                                            <p className="text-white/60 leading-relaxed mb-4">
                                                 Experienced {selectedBuilder.role.toLowerCase()} with a passion for building decentralized applications.
                                                 Currently working on innovative Web3 solutions in the African ecosystem.
                                             </p>
+
+                                            {selectedBuilder.credentials.length > 0 && (
+                                                <>
+                                                    <h4 className="text-sm font-semibold text-white/80 mb-3 flex items-center gap-2">
+                                                        <Award className="w-4 h-4 text-[#ff00ff]" />
+                                                        Verified Credentials ({selectedBuilder.credentials.length})
+                                                    </h4>
+                                                    <div className="space-y-2 mb-4">
+                                                        {selectedBuilder.credentials.map((cred, idx) => (
+                                                            <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#ff00ff]/10 border border-[#ff00ff]/20">
+                                                                <Shield className="w-4 h-4 text-[#ff00ff]" />
+                                                                <span className="text-sm text-white">{cred.title}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
 
                                         {connections.includes(selectedBuilder.name) ? (
-                                            <div className="flex gap-3">
+                                            <div className="flex gap-3 flex-wrap">
+                                                {isAvailable && (
+                                                    <button
+                                                        onClick={() => setShowCredentialModal(true)}
+                                                        className="flex-1 min-w-[200px] px-6 py-3 rounded-xl bg-[#ff00ff]/20 text-[#ff00ff] font-medium hover:bg-[#ff00ff]/30 transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Award className="w-5 h-5" />
+                                                        Sign Credential
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => handleSendMessage(selectedBuilder.name)}
-                                                    className="flex-1 px-6 py-3 rounded-xl bg-[#00d4ff]/20 text-[#00d4ff] font-medium hover:bg-[#00d4ff]/30 transition-colors flex items-center justify-center gap-2"
+                                                    className="flex-1 min-w-[200px] px-6 py-3 rounded-xl bg-[#00d4ff]/20 text-[#00d4ff] font-medium hover:bg-[#00d4ff]/30 transition-colors flex items-center justify-center gap-2"
                                                 >
                                                     <MessageCircle className="w-5 h-5" />
                                                     Send Message
                                                 </button>
                                                 <button
                                                     onClick={() => setSelectedBuilder(null)}
-                                                    className="flex-1 px-6 py-3 rounded-xl bg-white/5 text-white/60 font-medium hover:bg-white/10 transition-colors"
+                                                    className="flex-1 min-w-[200px] px-6 py-3 rounded-xl bg-white/5 text-white/60 font-medium hover:bg-white/10 transition-colors"
                                                 >
                                                     View Projects
                                                 </button>
@@ -548,7 +655,7 @@ export default function BuilderNetwork() {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="max-w-2xl w-full bg-black border border-white/20 rounded-2xl p-8"
+                            className="max-w-2xl w-full mx-4 bg-black border border-white/20 rounded-2xl p-6 md:p-8"
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <div>
@@ -606,6 +713,124 @@ export default function BuilderNetwork() {
                                     >
                                         <MessageCircle className="w-5 h-5" />
                                         Send Message
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Sign Credential Modal */}
+            <AnimatePresence>
+                {showCredentialModal && selectedBuilder && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+                        onClick={() => setShowCredentialModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="max-w-2xl w-full mx-4 bg-black border border-white/20 rounded-2xl p-6 md:p-8"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-white">Sign Builder Credential</h3>
+                                    <p className="text-white/60 text-sm mt-1">for {selectedBuilder.name}</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowCredentialModal(false)}
+                                    className="text-white/60 hover:text-white transition-colors"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                const formData = new FormData(e.currentTarget);
+                                const credType = formData.get('credentialType') as 'project_completion' | 'mentorship' | 'skill_verification';
+                                const title = formData.get('title') as string;
+                                const description = formData.get('description') as string;
+                                handleSignCredential(credType, title, description);
+                            }} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">
+                                        Credential Type
+                                    </label>
+                                    <select
+                                        name="credentialType"
+                                        required
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-[#ff00ff]/50 transition-colors"
+                                    >
+                                        <option value="project_completion">Project Completion</option>
+                                        <option value="mentorship">Mentorship Completion</option>
+                                        <option value="skill_verification">Skill Verification</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">
+                                        Credential Title
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="title"
+                                        required
+                                        placeholder="e.g., DeFi Protocol Development"
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-[#ff00ff]/50 transition-colors"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-white/80 mb-2">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        name="description"
+                                        required
+                                        rows={4}
+                                        placeholder="Describe what the builder accomplished..."
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-[#ff00ff]/50 transition-colors resize-none"
+                                    />
+                                </div>
+
+                                <div className="p-4 rounded-xl bg-[#ff00ff]/10 border border-[#ff00ff]/20">
+                                    <div className="flex items-start gap-3">
+                                        <Shield className="w-5 h-5 text-[#ff00ff] mt-0.5" />
+                                        <div className="text-sm text-white/80">
+                                            This credential will be cryptographically signed and permanently recorded using Aquafier Protocol.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCredentialModal(false)}
+                                        disabled={signingCredential}
+                                        className="flex-1 px-6 py-3 rounded-xl bg-white/5 text-white/60 hover:bg-white/10 transition-colors disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={signingCredential}
+                                        className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-[#ff00ff] to-[#00d4ff] text-white font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
+                                    >
+                                        {signingCredential ? (
+                                            <>Signing...</>
+                                        ) : (
+                                            <>
+                                                <Award className="w-5 h-5" />
+                                                Sign Credential
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </form>

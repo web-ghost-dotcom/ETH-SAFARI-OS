@@ -34,7 +34,7 @@ export default function Toast({ message, type, onClose, duration = 3000 }: Toast
             initial={{ opacity: 0, y: -20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: -20, x: '-50%' }}
-            className={`fixed top-6 left-1/2 z-[100] min-w-[300px] max-w-md bg-black/90 backdrop-blur-xl border ${colors[type]} rounded-xl shadow-2xl`}
+            className={`fixed top-6 left-1/2 z-[100] w-[calc(100%-2rem)] sm:min-w-[300px] max-w-md bg-black/90 backdrop-blur-xl border ${colors[type]} rounded-xl shadow-2xl`}
         >
             <div className="flex items-center gap-3 p-4">
                 {icons[type]}

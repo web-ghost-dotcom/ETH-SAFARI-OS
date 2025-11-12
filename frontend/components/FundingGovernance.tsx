@@ -1,8 +1,11 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUpRight, Clock, Award, ThumbsUp, ThumbsDown, X, Check } from 'lucide-react';
+import { ArrowUpRight, Clock, Award, ThumbsUp, ThumbsDown, X, Check, Shield } from 'lucide-react';
 import { useState } from 'react';
+import { useAquafier } from '@/lib/aquafier';
+import VerificationBadge from './VerificationBadge';
+import { useToast } from '@/hooks/useToast';
 
 const activeProposals = [
     {
@@ -16,7 +19,10 @@ const activeProposals = [
         totalVotes: 1590,
         timeLeft: '5 days',
         status: 'Active',
-        description: 'Organize monthly Web3 workshops across 5 African cities to onboard new developers into the ecosystem.'
+        description: 'Organize monthly Web3 workshops across 5 African cities to onboard new developers into the ecosystem.',
+        aquaTreeId: undefined as string | undefined,
+        isSigned: false,
+        signerCount: 0
     },
     {
         id: 'PROP-002',
@@ -29,7 +35,10 @@ const activeProposals = [
         totalVotes: 1100,
         timeLeft: '3 days',
         status: 'Active',
-        description: 'Provide free security audits for early-stage DeFi projects built by ETH Safari alumni.'
+        description: 'Provide free security audits for early-stage DeFi projects built by ETH Safari alumni.',
+        aquaTreeId: undefined as string | undefined,
+        isSigned: false,
+        signerCount: 0
     },
     {
         id: 'PROP-003',
@@ -42,7 +51,10 @@ const activeProposals = [
         totalVotes: 1820,
         timeLeft: '7 days',
         status: 'Active',
-        description: 'Build and maintain open-source tools specifically designed for African Web3 builders.'
+        description: 'Build and maintain open-source tools specifically designed for African Web3 builders.',
+        aquaTreeId: undefined as string | undefined,
+        isSigned: false,
+        signerCount: 0
     }
 ];
 
@@ -85,6 +97,72 @@ export default function FundingGovernance() {
     const [votingModal, setVotingModal] = useState<{ show: boolean; proposalId: string; type: 'for' | 'against' } | null>(null);
     const [votedProposals, setVotedProposals] = useState<Record<string, 'for' | 'against'>>({});
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [signingProposal, setSigningProposal] = useState<string | null>(null);
+    const [verifyingProposal, setVerifyingProposal] = useState<string | null>(null);
+
+    const { signProposal, verifyProposal, isAvailable } = useAquafier();
+    const { addToast } = useToast();
+
+    const handleSignProposal = async (proposalId: string) => {
+        setSigningProposal(proposalId);
+        const proposal = proposals.find(p => p.id === proposalId);
+        if (!proposal) return;
+
+        try {
+            // Mock wallet address - in production, get from wallet connection
+            const walletAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+
+            const result = await signProposal(
+                {
+                    title: proposal.title,
+                    description: proposal.description,
+                    amount: proposal.requestedAmount,
+                    category: proposal.category
+                },
+                walletAddress
+            );
+
+            if (result.success) {
+                setProposals(prev => prev.map(p =>
+                    p.id === proposalId
+                        ? { ...p, aquaTreeId: result.aquaTreeId, isSigned: true, signerCount: 1 }
+                        : p
+                ));
+                addToast('Proposal cryptographically signed!', 'success');
+            } else {
+                addToast(result.error || 'Failed to sign proposal', 'error');
+            }
+        } catch {
+            addToast('An error occurred while signing', 'error');
+        } finally {
+            setSigningProposal(null);
+        }
+    };
+
+    const handleVerifyProposal = async (proposalId: string) => {
+        const proposal = proposals.find(p => p.id === proposalId);
+        if (!proposal?.aquaTreeId) return;
+
+        setVerifyingProposal(proposalId);
+        try {
+            const result = await verifyProposal(proposal.aquaTreeId);
+
+            if (result.valid) {
+                setProposals(prev => prev.map(p =>
+                    p.id === proposalId
+                        ? { ...p, signerCount: result.signers.length }
+                        : p
+                ));
+                addToast(`Verified! Signed by ${result.signers.length} address(es)`, 'success');
+            } else {
+                addToast('Verification failed', 'error');
+            }
+        } catch {
+            addToast('Verification error', 'error');
+        } finally {
+            setVerifyingProposal(null);
+        }
+    };
 
     const handleVote = (proposalId: string, voteType: 'for' | 'against') => {
         // Update the proposal votes
@@ -183,13 +261,21 @@ export default function FundingGovernance() {
                                             <div className="flex-1">
                                                 <div className="flex items-start gap-4 mb-4">
                                                     <div className="flex-1">
-                                                        <div className="flex items-center gap-3 mb-2">
+                                                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                             <span className="text-sm font-mono text-white/50">
                                                                 {proposal.id}
                                                             </span>
                                                             <span className="px-3 py-1 rounded-full bg-[#ff00ff]/20 text-[#ff00ff] text-xs font-semibold">
                                                                 {proposal.category}
                                                             </span>
+                                                            {proposal.isSigned && (
+                                                                <VerificationBadge
+                                                                    isVerified={true}
+                                                                    signerCount={proposal.signerCount}
+                                                                    showDetails={true}
+                                                                    size="sm"
+                                                                />
+                                                            )}
                                                         </div>
                                                         <h4 className="text-xl font-bold text-white mb-2">
                                                             {proposal.title}
@@ -252,6 +338,44 @@ export default function FundingGovernance() {
 
                                             {/* Right Actions */}
                                             <div className="flex lg:flex-col gap-3">
+                                                {/* Aquafier Sign/Verify Buttons */}
+                                                {isAvailable && (
+                                                    <div className="flex lg:flex-col gap-2 w-full">
+                                                        {!proposal.isSigned ? (
+                                                            <button
+                                                                onClick={() => handleSignProposal(proposal.id)}
+                                                                disabled={signingProposal === proposal.id}
+                                                                className="flex-1 lg:flex-none px-4 py-2 rounded-full bg-[#ff00ff]/20 text-[#ff00ff] font-medium hover:bg-[#ff00ff]/30 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                                                            >
+                                                                {signingProposal === proposal.id ? (
+                                                                    <>Signing...</>
+                                                                ) : (
+                                                                    <>
+                                                                        <Shield className="w-4 h-4" />
+                                                                        Sign
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleVerifyProposal(proposal.id)}
+                                                                disabled={verifyingProposal === proposal.id}
+                                                                className="flex-1 lg:flex-none px-4 py-2 rounded-full bg-white/5 text-white/80 font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                                                            >
+                                                                {verifyingProposal === proposal.id ? (
+                                                                    <>Verifying...</>
+                                                                ) : (
+                                                                    <>
+                                                                        <Shield className="w-4 h-4" />
+                                                                        Verify
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Voting Buttons */}
                                                 {hasVoted ? (
                                                     <div className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10">
                                                         <Check className="w-4 h-4 text-[#00d4ff]" />
@@ -376,7 +500,7 @@ export default function FundingGovernance() {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="max-w-md w-full bg-black border border-white/20 rounded-2xl p-8"
+                            className="max-w-md w-full mx-4 bg-black border border-white/20 rounded-2xl p-6 md:p-8"
                         >
                             <div className="text-center mb-6">
                                 <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${votingModal.type === 'for' ? 'bg-[#00d4ff]/20' : 'bg-red-500/20'
@@ -434,7 +558,7 @@ export default function FundingGovernance() {
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="max-w-2xl w-full bg-black border border-white/20 rounded-2xl p-8 my-8"
+                            className="max-w-2xl w-full mx-4 bg-black border border-white/20 rounded-2xl p-6 md:p-8 my-8"
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-2xl font-bold text-white">Submit New Proposal</h3>

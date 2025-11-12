@@ -87,7 +87,7 @@ export default function SafariGuideWidget() {
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="fixed bottom-28 right-6 z-50 w-96 h-[600px] bg-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                        className="fixed bottom-6 right-6 left-6 md:left-auto md:bottom-28 md:right-6 z-50 md:w-96 h-[600px] max-h-[calc(100vh-80px)] bg-black border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
                     >
                         {/* Header */}
                         <div className="bg-gradient-to-r from-[#ff00ff]/20 to-[#00d4ff]/20 border-b border-white/10 p-4">
@@ -116,8 +116,8 @@ export default function SafariGuideWidget() {
                                 >
                                     <div
                                         className={`max-w-[80%] p-3 rounded-2xl ${msg.role === 'user'
-                                                ? 'bg-gradient-to-br from-[#ff00ff] to-[#00d4ff] text-white'
-                                                : 'bg-white/5 text-white border border-white/10'
+                                            ? 'bg-gradient-to-br from-[#ff00ff] to-[#00d4ff] text-white'
+                                            : 'bg-white/5 text-white border border-white/10'
                                             }`}
                                     >
                                         <p className="text-sm leading-relaxed">{msg.content}</p>

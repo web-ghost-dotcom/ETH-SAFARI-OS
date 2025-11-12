@@ -314,33 +314,35 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="min-h-screen py-12">
-            <div className="max-w-6xl mx-auto px-6">
+        <div className="min-h-screen py-6 md:py-12">
+            <div className="max-w-6xl mx-auto px-4 md:px-6">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-2">Settings</h1>
+                <div className="mb-6 md:mb-8">
+                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Settings</h1>
                     <p className="text-white/60">Manage your account preferences and settings</p>
                 </div>
 
-                <div className="flex gap-8">
+                <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
                     {/* Sidebar */}
-                    <div className="w-64 space-y-2">
-                        {settingsSections.map((section) => {
-                            const Icon = section.icon;
-                            return (
-                                <button
-                                    key={section.id}
-                                    onClick={() => setActiveSection(section.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeSection === section.id
-                                        ? 'bg-white/10 text-white border border-white/20'
-                                        : 'text-white/60 hover:text-white hover:bg-white/5'
-                                        }`}
-                                >
-                                    <Icon className="w-5 h-5" style={{ color: activeSection === section.id ? section.color : undefined }} />
-                                    <span className="font-medium">{section.title}</span>
-                                </button>
-                            );
-                        })}
+                    <div className="w-full lg:w-64 space-y-2">
+                        <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+                            {settingsSections.map((section) => {
+                                const Icon = section.icon;
+                                return (
+                                    <button
+                                        key={section.id}
+                                        onClick={() => setActiveSection(section.id)}
+                                        className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap ${activeSection === section.id
+                                            ? 'bg-white/10 text-white border border-white/20'
+                                            : 'text-white/60 hover:text-white hover:bg-white/5'
+                                            }`}
+                                    >
+                                        <Icon className="w-5 h-5" style={{ color: activeSection === section.id ? section.color : undefined }} />
+                                        <span className="font-medium">{section.title}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     {/* Content */}
@@ -349,7 +351,7 @@ export default function SettingsPage() {
                             key={activeSection}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8"
+                            className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-4 md:p-8"
                         >
                             {renderContent()}
 
