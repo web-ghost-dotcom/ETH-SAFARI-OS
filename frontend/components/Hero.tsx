@@ -24,43 +24,39 @@ export default function Hero() {
                 </Canvas>
             </div>
 
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black/80 z-10" />
+            {/* Gradient Overlay - Enhanced for better text visibility */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/90 z-10" />
 
             {/* Content */}
-            <div className="relative z-20 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 text-center">
+            <div className="relative z-20 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 text-center py-20 pb-32">
 
                 <motion.h1
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.4 }}
-                    className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight"
+                    className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold mb-8 leading-tight drop-shadow-2xl"
                 >
-                    <span className="text-white">ETH Safari</span>
+                    <span className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]">ETH Safari</span>
                     <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff00ff] via-[#ff00ff] to-[#00d4ff]">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff00ff] via-[#ff00ff] to-[#00d4ff] drop-shadow-[0_0_30px_rgba(255,0,255,0.5)]">
                         OS
                     </span>
                 </motion.h1>
 
-                <motion.p
+                <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.6 }}
-                    className="text-xl sm:text-2xl lg:text-3xl text-white/80 mb-4 max-w-4xl mx-auto font-light"
+                    className="backdrop-blur-sm bg-black/30 rounded-3xl p-6 sm:p-8 mb-8 max-w-4xl mx-auto border border-white/10"
                 >
-                    The Living Network for Africa&apos;s Web3 Builders
-                </motion.p>
-
-                <motion.p
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, delay: 0.8 }}
-                    className="text-base sm:text-lg text-white/60 mb-12 max-w-2xl mx-auto"
-                >
-                    Transforming ETH Safari from an event into a sustainable, AI-powered,
-                    and community-governed ecosystem that empowers African builders to create lasting Web3 impact.
-                </motion.p>
+                    <p className="text-xl sm:text-2xl lg:text-3xl text-white mb-4 font-light">
+                        The Living Network for Africa&apos;s Web3 Builders
+                    </p>
+                    <p className="text-base sm:text-lg text-white/80 max-w-2xl mx-auto">
+                        Transforming ETH Safari from an event into a sustainable, AI-powered,
+                        and community-governed ecosystem that empowers African builders to create lasting Web3 impact.
+                    </p>
+                </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
@@ -89,19 +85,19 @@ export default function Hero() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 1, delay: 1.2 }}
-                    className="mt-16 flex items-center justify-center gap-8 text-sm text-white/50"
+                    className="mt-12 mb-24 flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm"
                 >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
                         <div className="w-2 h-2 rounded-full bg-[#ff00ff] animate-pulse" />
-                        <span>Community-Governed</span>
+                        <span className="text-white font-medium">Community-Governed</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
                         <div className="w-2 h-2 rounded-full bg-[#00d4ff] animate-pulse" />
-                        <span>AI-Powered</span>
+                        <span className="text-white font-medium">AI-Powered</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
                         <div className="w-2 h-2 rounded-full bg-[#ff00ff] animate-pulse" />
-                        <span>Always-On</span>
+                        <span className="text-white font-medium">Always-On</span>
                     </div>
                 </motion.div>
             </div>
@@ -111,16 +107,16 @@ export default function Hero() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 1, delay: 1.5 }}
-                className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20"
+                className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-20"
             >
-                <div className="flex flex-col items-center gap-2">
-                    <span className="text-white/50 text-xs">Scroll to explore</span>
+                <div className="flex flex-col items-center gap-3 px-6 py-4 rounded-2xl bg-black/50 backdrop-blur-md border border-white/20">
+                    <span className="text-white text-sm font-medium">Scroll to explore</span>
                     <motion.div
-                        animate={{ y: [0, 8, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center p-2"
+                        animate={{ y: [0, 10, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="w-6 h-10 rounded-full border-2 border-white/60 flex items-start justify-center p-2"
                     >
-                        <div className="w-1 h-2 bg-[#ff00ff] rounded-full" />
+                        <div className="w-1.5 h-3 bg-gradient-to-b from-[#ff00ff] to-[#00d4ff] rounded-full" />
                     </motion.div>
                 </div>
             </motion.div>
