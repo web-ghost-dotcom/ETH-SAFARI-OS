@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Sparkles, Send, Bot } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const aiFeatures = [
     {
@@ -40,25 +40,82 @@ const quickActions = [
 
 export default function SafariGuideAI() {
     const [message, setMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [streamingMessage, setStreamingMessage] = useState('');
     const [chatHistory, setChatHistory] = useState<Array<{ role: string, content: string }>>([
         {
             role: 'assistant',
             content: 'Hello! I\'m SafariGuide, your AI assistant for ETH Safari OS. How can I help you today?'
         }
     ]);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const handleSendMessage = () => {
-        if (!message.trim()) return;
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatHistory, streamingMessage]);
 
-        setChatHistory([
-            ...chatHistory,
-            { role: 'user', content: message },
-            {
-                role: 'assistant',
-                content: 'I\'m currently in demo mode. Full AI capabilities will be available soon! In the meantime, explore the features below.'
-            }
-        ]);
+    const handleSendMessage = async () => {
+        if (!message.trim() || isLoading) return;
+
+        const userMessage = message.trim();
         setMessage('');
+        setIsLoading(true);
+
+        // Add user message to chat
+        const updatedHistory = [
+            ...chatHistory,
+            { role: 'user', content: userMessage }
+        ];
+        setChatHistory(updatedHistory);
+
+        try {
+            // Call the Gemini API via our backend route
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: userMessage,
+                    chatHistory: chatHistory
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to get response');
+            }
+
+            // Stream the AI response character by character
+            const aiResponse = data.response;
+            setStreamingMessage('');
+
+            for (let i = 0; i < aiResponse.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 20)); // 20ms per character
+                setStreamingMessage(aiResponse.substring(0, i + 1));
+            }
+
+            // Add complete AI response to chat history
+            setChatHistory([
+                ...updatedHistory,
+                { role: 'assistant', content: aiResponse }
+            ]);
+            setStreamingMessage('');
+
+        } catch (error) {
+            console.error('Chat error:', error);
+            setChatHistory([
+                ...updatedHistory,
+                {
+                    role: 'assistant',
+                    content: 'Sorry, I encountered an error. Please make sure the GEMINI_API_KEY is set in your .env.local file. You can get a free API key from https://makersuite.google.com/app/apikey'
+                }
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -111,7 +168,7 @@ export default function SafariGuideAI() {
                                                 : 'bg-white/5 border border-white/10'
                                                 }`}
                                         >
-                                            <p className="text-white/90">{msg.content}</p>
+                                            <p className="text-white/90 whitespace-pre-line leading-relaxed">{msg.content}</p>
                                         </div>
                                         {msg.role === 'user' && (
                                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00d4ff] to-[#ff00ff] flex items-center justify-center flex-shrink-0">
@@ -120,6 +177,21 @@ export default function SafariGuideAI() {
                                         )}
                                     </div>
                                 ))}
+                                {/* Streaming message */}
+                                {streamingMessage && (
+                                    <div className="flex gap-3 justify-start">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ff00ff] to-[#00d4ff] flex items-center justify-center flex-shrink-0">
+                                            <Bot className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div className="max-w-md p-4 rounded-2xl bg-white/5 border border-white/10">
+                                            <p className="text-white/90 whitespace-pre-line leading-relaxed">
+                                                {streamingMessage}
+                                                <span className="inline-block w-1 h-4 ml-1 bg-[#00d4ff] animate-pulse" />
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
                             </div>
 
                             {/* Quick Actions */}
@@ -146,13 +218,19 @@ export default function SafariGuideAI() {
                                     onChange={(e) => setMessage(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                                     placeholder="Ask SafariGuide anything..."
-                                    className="flex-1 px-4 py-3 rounded-full bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#ff00ff] focus:outline-none"
+                                    disabled={isLoading}
+                                    className="flex-1 px-4 py-3 rounded-full bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:border-[#ff00ff] focus:outline-none disabled:opacity-50"
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    className="p-3 rounded-full bg-[#ff00ff] text-white hover:bg-[#ff00ff]/90 transition-colors"
+                                    disabled={isLoading || !message.trim()}
+                                    className="p-3 rounded-full bg-[#ff00ff] text-white hover:bg-[#ff00ff]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Send className="w-5 h-5" />
+                                    {isLoading ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <Send className="w-5 h-5" />
+                                    )}
                                 </button>
                             </div>
                         </motion.div>
@@ -203,11 +281,25 @@ export default function SafariGuideAI() {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: 0.4 }}
-                            className="p-6 rounded-2xl border border-[#ff00ff]/30 bg-gradient-to-br from-[#ff00ff]/10 to-[#00d4ff]/10"
+                            className="p-6 rounded-2xl border border-[#00d4ff]/30 bg-gradient-to-br from-[#00d4ff]/10 to-[#ff00ff]/10"
                         >
-                            <h4 className="text-white font-bold mb-2">Coming Soon</h4>
-                            <p className="text-sm text-white/60">
-                                Full AI capabilities powered by GPT and trained on ETH Safari project corpus
+                            <h4 className="text-white font-bold mb-2 flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-[#00d4ff]" />
+                                Powered by Gemini
+                            </h4>
+                            <p className="text-sm text-white/60 mb-3">
+                                Advanced AI trained on ETH Safari ecosystem and blockchain development
+                            </p>
+                            <p className="text-xs text-white/40">
+                                Get your free API key at{' '}
+                                <a
+                                    href="https://makersuite.google.com/app/apikey"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#00d4ff] hover:underline"
+                                >
+                                    Google AI Studio
+                                </a>
                             </p>
                         </motion.div>
                     </div>

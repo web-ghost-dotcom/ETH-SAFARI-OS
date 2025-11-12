@@ -90,7 +90,7 @@ export default function Mission() {
                             transition={{ delay: index * 0.1, duration: 0.5 }}
                             className="relative group"
                         >
-                            <div className="text-center p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm hover:border-white/20 transition-all">
+                            <div className="text-center p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm hover:border-white/20 transition-all h-full flex flex-col justify-center min-h-[180px]">
                                 <motion.div
                                     animate={{
                                         scale: [1, 1.05, 1],
@@ -102,12 +102,12 @@ export default function Mission() {
                                     }}
                                 >
                                     <div
-                                        className="text-5xl font-bold mb-2"
+                                        className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 leading-none"
                                         style={{ color: stat.color }}
                                     >
                                         {stat.value}
                                     </div>
-                                    <div className="text-sm text-white/60 font-medium">
+                                    <div className="text-xs sm:text-sm text-white/60 font-medium uppercase tracking-wide">
                                         {stat.label}
                                     </div>
                                 </motion.div>
